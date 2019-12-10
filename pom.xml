@@ -4,7 +4,7 @@
     <groupId>com.mortennobel</groupId>
     <artifactId>java-image-scaling</artifactId>
     <name>java-image-scaling</name>
-    <version>0.8.7-atex</version>
+    <version>0.8.8-atex-SNAPSHOT</version>
     <description>
         The purpose of the library is to provide better image scaling options than the Java runtime provides.
     </description>
@@ -53,7 +53,7 @@
     <scm>
         <url>https://github.com/atex-polopoly/java-image-scaling</url>
         <developerConnection>scm:git:git@github.com:atex-polopoly/java-image-scaling</developerConnection>
-        <tag>java-image-scaling-0.8.7-atex</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <!-- Distribution to polopoly repository -->
