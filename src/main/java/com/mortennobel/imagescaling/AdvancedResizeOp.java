@@ -6,8 +6,6 @@
  */
 package com.mortennobel.imagescaling;
 
-import com.jhlabs.image.UnsharpFilter;
-
 import java.awt.*;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
@@ -16,6 +14,11 @@ import java.awt.image.BufferedImageOp;
 import java.awt.image.ColorModel;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import com.jhlabs.image.UnsharpFilter;
+import com.mortennobel.imagescaling.threads.ResampleThreadFactory;
 
 /**
  * @author Morten Nobel-Joergensen
@@ -36,10 +39,21 @@ public abstract class AdvancedResizeOp implements BufferedImageOp {
 	private List<ProgressListener> listeners = new ArrayList<ProgressListener>();
 
     private final DimensionConstrain dimensionConstrain;
+    private final ExecutorService executorService;
 	private UnsharpenMask unsharpenMask = UnsharpenMask.None;
 
 	public AdvancedResizeOp(DimensionConstrain dimensionConstrain) {
+		this(dimensionConstrain, Executors.newCachedThreadPool(new ResampleThreadFactory()));
+	}
+
+	public AdvancedResizeOp(final DimensionConstrain dimensionConstrain,
+							final ExecutorService executorService) {
 		this.dimensionConstrain = dimensionConstrain;
+		this.executorService = executorService;
+	}
+
+	public ExecutorService getExecutorService() {
+		return executorService;
 	}
 
 	public UnsharpenMask getUnsharpenMask() {

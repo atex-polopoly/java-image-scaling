@@ -8,6 +8,13 @@ package com.mortennobel.imagescaling;
 
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -66,6 +73,8 @@ public class ResampleOp extends AdvancedResizeOp
 	private float totalItems;
 
 	private int numberOfThreads = Runtime.getRuntime().availableProcessors();
+	private long timeout = 0;
+	private boolean shutdownExecutor = true;
 
 	private AtomicInteger multipleInvocationLock = new AtomicInteger();
 
@@ -78,6 +87,16 @@ public class ResampleOp extends AdvancedResizeOp
 
 	public ResampleOp(DimensionConstrain dimensionConstrain) {
 		super(dimensionConstrain);
+	}
+
+	public ResampleOp(int destWidth, int destHeight, final ExecutorService executor) {
+		this(DimensionConstrain.createAbsolutionDimension(destWidth, destHeight), executor);
+		shutdownExecutor = false;
+	}
+
+	public ResampleOp(DimensionConstrain dimensionConstrain, final ExecutorService executor) {
+		super(dimensionConstrain, executor);
+		shutdownExecutor = false;
 	}
 
 	public ResampleFilter getFilter() {
@@ -94,6 +113,14 @@ public class ResampleOp extends AdvancedResizeOp
 
 	public void setNumberOfThreads(int numberOfThreads) {
 		this.numberOfThreads = numberOfThreads;
+	}
+
+	public long getTimeout() {
+		return timeout;
+	}
+
+	public void setTimeout(final long timeout) {
+		this.timeout = timeout;
 	}
 
 	public BufferedImage doFilter(BufferedImage srcImg, BufferedImage dest, int dstWidth, int dstHeight) {
@@ -129,35 +156,30 @@ public class ResampleOp extends AdvancedResizeOp
 
         final BufferedImage scrImgCopy = srcImg;
         final byte[][] workPixelsCopy = workPixels;
-        Thread[] threads = new Thread[numberOfThreads-1];
+		final List<Future<?>> futures = new ArrayList<>();
         for (int i=1;i<numberOfThreads;i++){
             final int finalI = i;
-            threads[i-1] = new Thread(new Runnable(){
-                public void run(){
-                    horizontallyFromSrcToWork(scrImgCopy, workPixelsCopy,finalI,numberOfThreads);
-                }
-            });
-            threads[i-1].start();
+			futures.add(getExecutorService().submit(() -> horizontallyFromSrcToWork(scrImgCopy, workPixelsCopy, finalI, numberOfThreads)));
         }
         horizontallyFromSrcToWork(scrImgCopy, workPixelsCopy,0,numberOfThreads);
-        waitForAllThreads(threads);
+		waitForFutures(futures);
 
         byte[] outPixels = new byte[dstWidth*dstHeight*nrChannels];
         // --------------------------------------------------
 		// Apply filter to sample vertically from Work to Dst
 		// --------------------------------------------------
+		futures.clear();
         final byte[] outPixelsCopy = outPixels;
         for (int i=1;i<numberOfThreads;i++){
             final int finalI = i;
-            threads[i-1] = new Thread(new Runnable(){
-                public void run(){
-					verticalFromWorkToDst(workPixelsCopy, outPixelsCopy, finalI,numberOfThreads);
-                }
-            });
-            threads[i-1].start();
+            futures.add(getExecutorService().submit(() -> verticalFromWorkToDst(workPixelsCopy, outPixelsCopy, finalI,numberOfThreads)));
         }
         verticalFromWorkToDst(workPixelsCopy, outPixelsCopy, 0,numberOfThreads);
-        waitForAllThreads(threads);
+        waitForFutures(futures);
+
+		if (shutdownExecutor) {
+			getExecutorService().shutdown();
+		}
 
         //noinspection UnusedAssignment
         workPixels = null; // free memory
@@ -180,16 +202,55 @@ public class ResampleOp extends AdvancedResizeOp
 		return out;
     }
 
-    private void waitForAllThreads(Thread[] threads) {
-        try {
-            for (Thread t:threads){
-                t.join(Long.MAX_VALUE);
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
-        }
-    }
+	private void waitForFutures(final List<Future<?>> futures) {
+		long maxTimeout = timeout;
+		boolean timeoutReached = false;
+		for (final Future<?> f : futures) {
+			if (timeout > 0) {
+				if (maxTimeout > 0) {
+					try {
+						final long start = System.currentTimeMillis();
+						f.get(maxTimeout, TimeUnit.MILLISECONDS);
+						final long end = System.currentTimeMillis();
+						maxTimeout = maxTimeout - (end - start);
+					} catch (InterruptedException | ExecutionException | TimeoutException e) {
+						if (shutdownExecutor) {
+							getExecutorService().shutdownNow();
+						} else {
+							cancelAllFutures(futures);
+						}
+						Thread.currentThread().interrupt();
+						throw new RuntimeException(e);
+					}
+				} else {
+					f.cancel(true);
+					timeoutReached = true;
+				}
+			} else {
+				try {
+					f.get();
+				} catch (InterruptedException | ExecutionException e) {
+					if (shutdownExecutor) {
+						getExecutorService().shutdownNow();
+					} else {
+						cancelAllFutures(futures);
+					}
+					Thread.currentThread().interrupt();
+					throw new RuntimeException(e);
+				}
+			}
+		}
+		if (timeoutReached) {
+			Thread.currentThread().interrupt();
+			throw new RuntimeException("Timeout (" + timeout + ")");
+		}
+	}
+
+	private void cancelAllFutures(final List<Future<?>> futures) {
+		futures.stream()
+			   .filter(f -> !f.isDone())
+			   .forEach(f -> f.cancel(true));
+	}
 
     static SubSamplingData createSubSampling(ResampleFilter filter, int srcSize, int dstSize) {
 		float scale = (float)dstSize / (float)srcSize;
