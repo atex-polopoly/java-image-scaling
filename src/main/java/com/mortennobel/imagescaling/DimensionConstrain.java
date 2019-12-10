@@ -55,8 +55,10 @@ public class DimensionConstrain {
 	/**
 	 * Used when the destination size is relative to the source. This keeps the image aspect radio if fractionWidth
      * equals fractionHeight
-	 * @param
-	 * @return
+	 *
+	 * @param fractionWidth
+	 * @param fractionHeight
+	 * @return the new dimension
 	 */
 	public static DimensionConstrain createRelativeDimension(final float fractionWidth, final float fractionHeight){
 		assert fractionHeight>0 && fractionWidth>0:"Fractions must be larger than 0.0";
