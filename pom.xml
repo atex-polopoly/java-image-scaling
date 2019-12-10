@@ -36,6 +36,13 @@
             <organizationUrl>http://www.moxter.net/pe/</organizationUrl>
             <timezone>-6</timezone>
         </contributor>
+        <contributor>
+            <name>Marco Nova</name>
+            <email>mnova@atex.com</email>
+            <organization>Atex Global Media srl, Italy</organization>
+            <organizationUrl>https://www.atex.com</organizationUrl>
+            <timezone>+1</timezone>
+        </contributor>
     </contributors>
 
      <!-- correct encoding -->
@@ -43,25 +50,23 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
-    <!-- SubVersion Repository -->
     <scm>
-        <url>http://java-image-scaling.googlecode.com/svn/</url>
-        <connection>scm:svn:http://java-image-scaling.googlecode.com/svn/trunk</connection>
-        <developerConnection>scm:svn:https://java-image-scaling.googlecode.com/svn/trunk</developerConnection>
+        <url>https://github.com/atex-polopoly/java-image-scaling</url>
+        <developerConnection>scm:git:git@github.com:atex-polopoly/java-image-scaling</developerConnection>
+        <tag>HEAD</tag>
     </scm>
 
-    <!-- Distribution to google code SVN -->
+    <!-- Distribution to polopoly repository -->
     <distributionManagement>
         <repository>
-            <uniqueVersion>false</uniqueVersion>
-            <id>sonatype-nexus-staging</id>
-            <name>Nexus Release Repository</name>
-            <url>http://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+            <id>polopoly-product</id>
+            <name>Polopoly Product</name>
+            <url>http://maven.polopoly.com/nexus/content/repositories/polopoly-product</url>
         </repository>
         <snapshotRepository>
-            <id>sonatype-nexus-snapshots</id>
-            <name>Sonatype Nexus Snapshots</name>
-            <url>http://oss.sonatype.org/content/repositories/snapshots</url>
+            <id>polopoly-product-snapshots</id>
+            <name>Polopoly Product Snapshots</name>
+            <url>http://maven.polopoly.com/nexus/content/repositories/polopoly-product-snapshots</url>
         </snapshotRepository>
     </distributionManagement>
 
@@ -198,7 +203,7 @@
 
         <plugins>
             <!--
-                use Java 1.5 and UTF8 encoding
+                use Java 1.8 and UTF8 encoding
             -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -228,9 +233,22 @@
             </plugin>
             <plugin>
                 <artifactId>maven-release-plugin</artifactId>
+                <version>2.5.3</version>
                 <configuration>
                     <mavenExecutorId>forked-path</mavenExecutorId>
                 </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.apache.maven.scm</groupId>
+                        <artifactId>maven-scm-api</artifactId>
+                        <version>1.9.4</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.apache.maven.scm</groupId>
+                        <artifactId>maven-scm-provider-gitexe</artifactId>
+                        <version>1.9.4</version>
+                    </dependency>
+                </dependencies>
             </plugin>
         </plugins>
         <extensions>
