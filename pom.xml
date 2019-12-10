@@ -132,6 +132,7 @@
                         </configuration>
                     </plugin>
                      <!-- signing the artefact with gpg -->
+                    <!--
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
@@ -145,6 +146,7 @@
                             </execution>
                         </executions>
                     </plugin>
+                    -->
                 </plugins>
             </build>
         </profile>
