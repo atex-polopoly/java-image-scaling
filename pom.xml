@@ -78,7 +78,7 @@
             Release Profile is done without tests, but with source and JavaDoc!
         -->
         <profile>
-            <id>release-profile</id>
+            <id>deploy</id>
             <activation>
                 <property>
                     <name>performRelease</name>
